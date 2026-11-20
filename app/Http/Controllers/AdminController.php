@@ -7,15 +7,18 @@ use App\Models\User;
 use App\Models\Task;
 use App\Models\Absensi;
 use App\Models\PengajuanIzin;
+use App\Services\AttendanceService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
     /**
      * Display Admin (HR) dashboard - monitoring only.
      */
-    public function dashboard()
+    public function dashboard(AttendanceService $attendance)
     {
         $totalEmployees = User::where('role', 'karyawan')->count();
         $totalManagers = User::where('role', 'manajer')->count();
@@ -27,8 +30,21 @@ class AdminController extends Controller
         $completedTasks = $tasks->where('status', 'Completed')->count();
         $reviewedTasks = $tasks->where('status', 'Reviewed')->count();
 
-        $averageScore = User::where('role', 'karyawan')->get()
-            ->map(fn ($employee) => $employee->calculatePerformanceKpi()['final_score'])
+        $month = now()->month;
+        $year = now()->year;
+
+        // Load current-month tasks once for KPI calculations.
+        $allKaryawan = User::where('role', 'karyawan')
+            ->with([
+                'assignedTasks' => fn ($query) => $query
+                    ->whereMonth('deadline', $month)
+                    ->whereYear('deadline', $year)
+                    ->with(['checklists', 'progress']),
+            ])
+            ->get();
+
+        $averageScore = $allKaryawan
+            ->map(fn ($employee) => $employee->calculatePerformanceKpi($employee->assignedTasks, $month, $year)['final_score'])
             ->avg() ?? 0;
 
         // Recent tasks
@@ -38,12 +54,11 @@ class AdminController extends Controller
             ->get();
 
         // Absensi statistics for today
-        $today = now()->toDateString();
-        $todayAbsensi = Absensi::where('tanggal', $today)->where('jenis', 'masuk')->get();
-        $presentCount = $todayAbsensi->pluck('user_id')->unique()->count();
-        $onTimeCount = $todayAbsensi->where('status', 'Tepat waktu')->count();
-        $lateCount = $todayAbsensi->where('status', 'Terlambat')->count();
-        $notCheckedInCount = max(0, $totalEmployees - $presentCount);
+        $todayStats = $attendance->todayStats($totalEmployees);
+        $presentCount = $todayStats['present'];
+        $onTimeCount = $todayStats['on_time'];
+        $lateCount = $todayStats['late'];
+        $notCheckedInCount = $todayStats['not_checked_in'];
 
         // Recent absensi logs
         $recentAbsensi = Absensi::with('user')
@@ -52,9 +67,8 @@ class AdminController extends Controller
             ->get();
 
         // Employee of the Month (highest KPI score)
-        $allKaryawan = User::where('role', 'karyawan')->get();
-        $topEmployee = $allKaryawan->map(function ($emp) {
-            $kpi = $emp->calculatePerformanceKpi();
+        $topEmployee = $allKaryawan->map(function ($emp) use ($month, $year) {
+            $kpi = $emp->calculatePerformanceKpi($emp->assignedTasks, $month, $year);
             return (object) [
                 'id' => $emp->id,
                 'name' => $emp->name,
@@ -62,8 +76,11 @@ class AdminController extends Controller
                 'divisi' => $emp->divisi,
                 'score' => $kpi['final_score'],
                 'category' => $kpi['category'],
+                'tasks_count' => $emp->assignedTasks->count(),
             ];
-        })->sortByDesc('score')->first();
+        })->filter(fn ($employee) => $employee->tasks_count > 0)
+            ->sortByDesc('score')
+            ->first();
 
         return view('admin.dashboard', compact(
             'totalEmployees',
@@ -114,7 +131,9 @@ class AdminController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $totalMasuk = $absensiList->where('jenis', 'masuk')->count();
+        $totalMasuk = $absensiList->where('jenis', 'masuk')
+            ->whereIn('status', ['Tepat waktu', 'Terlambat'])
+            ->count();
         $totalTepatWaktu = $absensiList->where('jenis', 'masuk')->where('status', 'Tepat waktu')->count();
         $totalTerlambat = $absensiList->where('jenis', 'masuk')->where('status', 'Terlambat')->count();
         $totalPulang = $absensiList->where('jenis', 'pulang')->count();
@@ -140,29 +159,39 @@ class AdminController extends Controller
     public function approveIzin($id)
     {
         $izin = PengajuanIzin::findOrFail($id);
-        $izin->status = 'approved';
-        $izin->disetujui_oleh = Auth::id();
-        $izin->save();
 
-        // Create attendance records for approved range
-        $curr = \Carbon\Carbon::parse($izin->tanggal_mulai);
-        $end = \Carbon\Carbon::parse($izin->tanggal_selesai);
-
-        while ($curr->lte($end)) {
-            Absensi::updateOrCreate(
-                [
-                    'user_id' => $izin->user_id,
-                    'tanggal' => $curr->toDateString(),
-                    'jenis' => 'masuk',
-                ],
-                [
-                    'jam' => '08:00:00',
-                    'status' => ucfirst($izin->jenis),
-                    'detail' => 'Disetujui: ' . $izin->alasan,
-                ]
-            );
-            $curr->addDay();
+        if ($izin->status !== 'pending') {
+            return redirect()->back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
         }
+
+        DB::transaction(function () use ($izin) {
+            $izin->status = 'approved';
+            $izin->disetujui_oleh = Auth::id();
+            $izin->save();
+
+            // Create attendance markers for approved workdays only.
+            // firstOrCreate prevents overwriting an employee's real check-in.
+            $curr = \Carbon\Carbon::parse($izin->tanggal_mulai)->startOfDay();
+            $end = \Carbon\Carbon::parse($izin->tanggal_selesai)->startOfDay();
+
+            while ($curr->lte($end)) {
+                if (! $curr->isWeekend()) {
+                    Absensi::firstOrCreate(
+                        [
+                            'user_id' => $izin->user_id,
+                            'tanggal' => $curr->toDateString(),
+                            'jenis' => 'masuk',
+                        ],
+                        [
+                            'jam' => '08:00:00',
+                            'status' => ucfirst($izin->jenis),
+                            'detail' => 'Disetujui: ' . $izin->alasan,
+                        ]
+                    );
+                }
+                $curr->addDay();
+            }
+        });
 
         return redirect()->back()->with('success', 'Pengajuan ' . ucfirst($izin->jenis) . ' berhasil disetujui.');
     }
@@ -172,7 +201,16 @@ class AdminController extends Controller
      */
     public function rejectIzin(Request $request, $id)
     {
+        $request->validate([
+            'catatan_approver' => ['nullable', 'string', 'max:1000'],
+        ]);
+
         $izin = PengajuanIzin::findOrFail($id);
+
+        if ($izin->status !== 'pending') {
+            return redirect()->back()->with('error', 'Pengajuan ini sudah diproses sebelumnya.');
+        }
+
         $izin->status = 'rejected';
         $izin->disetujui_oleh = Auth::id();
         $izin->catatan_approver = $request->input('catatan_approver');
@@ -194,11 +232,11 @@ class AdminController extends Controller
             ->unique()
             ->values();
 
-        $taskQuery = Task::with(['karyawan', 'hr', 'progress', 'evaluasi'])
+        $taskQuery = Task::with(['karyawan', 'hr', 'progress', 'evaluasi', 'checklists'])
             ->orderBy('created_at', 'desc');
 
         $empQuery = User::where('role', 'karyawan')
-            ->with(['assignedTasks.evaluasi', 'assignedTasks.progress']);
+            ->with(['assignedTasks.evaluasi', 'assignedTasks.progress', 'assignedTasks.checklists']);
 
         if ($selectedDivisi) {
             $empQuery->where('divisi', $selectedDivisi);
@@ -255,16 +293,18 @@ class AdminController extends Controller
             'divisi' => ['nullable', 'string', 'max:100'],
         ]);
 
+        $plainPassword = Str::password(12);
+
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'role' => $request->role,
             'divisi' => $request->divisi,
-            'password' => Hash::make('password123'), // Default password
+            'password' => Hash::make($plainPassword),
         ]);
 
         return redirect()->route('admin.users')
-            ->with('success', 'Akun pengguna berhasil dibuat dengan password bawaan: password123.');
+            ->with('success', 'Akun pengguna berhasil dibuat. Password sementara: ' . $plainPassword . '. Mohon segera minta pengguna mengganti password.');
     }
 
     /**

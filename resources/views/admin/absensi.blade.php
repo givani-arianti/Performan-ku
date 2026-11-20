@@ -174,7 +174,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 @if($izin->dokumen)
-                                    <a href="{{ asset('storage/' . $izin->dokumen) }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1 font-semibold">
+                                    <a href="{{ route('dokumen-izin.download', $izin->id) }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1 font-semibold">
                                         <i class="fa-solid fa-paperclip"></i> Dokumen Bukti
                                     </a>
                                 @else

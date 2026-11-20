@@ -55,8 +55,7 @@
             <form action="{{ route('karyawan.absensi.store') }}" method="POST" class="flex-1" id="form-masuk">
                 @csrf
                 <input type="hidden" name="jenis" value="masuk">
-                <input type="hidden" name="client_time" id="client_time_masuk">
-                <button type="submit" onclick="setClientTime('client_time_masuk')" class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-navy-800 text-white font-semibold hover:bg-navy-700 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" {{ $checkIn ? 'disabled' : '' }}>
+                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-navy-800 text-white font-semibold hover:bg-navy-700 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" {{ $checkIn ? 'disabled' : '' }}>
                     <i class="fa-solid fa-right-to-bracket mr-2"></i>
                     Absen Masuk
                 </button>
@@ -65,8 +64,7 @@
             <form action="{{ route('karyawan.absensi.store') }}" method="POST" class="flex-1" id="form-pulang">
                 @csrf
                 <input type="hidden" name="jenis" value="pulang">
-                <input type="hidden" name="client_time" id="client_time_pulang">
-                <button type="submit" onclick="setClientTime('client_time_pulang')" class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-800 text-white font-semibold hover:bg-slate-700 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" {{ $checkOut || !$checkIn ? 'disabled' : '' }}>
+                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-slate-800 text-white font-semibold hover:bg-slate-700 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed" {{ $checkOut || !$checkIn ? 'disabled' : '' }}>
                     <i class="fa-solid fa-right-from-bracket mr-2"></i>
                     Absen Pulang
                 </button>
@@ -136,14 +134,6 @@
     </div>
 
 <script>
-    function setClientTime(inputId) {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        document.getElementById(inputId).value = hours + ':' + minutes + ':' + seconds;
-    }
-
     function toggleIzinModal() {
         const modal = document.getElementById('modal-izin');
         modal.classList.toggle('hidden');
@@ -185,7 +175,7 @@
                             </td>
                             <td class="px-6 py-3">
                                 @if($izin->dokumen)
-                                    <a href="{{ asset('storage/' . $izin->dokumen) }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">
+                                    <a href="{{ route('dokumen-izin.download', $izin->id) }}" target="_blank" class="text-blue-600 hover:underline flex items-center gap-1">
                                         <i class="fa-solid fa-paperclip"></i> Lihat File
                                     </a>
                                 @else

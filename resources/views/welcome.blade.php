@@ -74,9 +74,17 @@
             <!-- Actions -->
             <div class="hidden md:flex items-center space-x-4">
                 @auth
-                    <a href="{{ route('karyawan.dashboard') }}" class="text-brand-dark text-sm font-semibold hover:text-brand-accent transition flex items-center gap-2">
-                        <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->name) }}&background=2d433b&color=fff" class="w-8 h-8 rounded-full border border-gray-200" alt="Avatar">
-                        {{ auth()->user()->name }}
+                    @php
+                        $u = auth()->user();
+                        $targetUrl = match($u->role) {
+                            'admin', 'hr' => route('admin.dashboard'),
+                            'manajer' => route('manajer.dashboard'),
+                            default => route('karyawan.dashboard'),
+                        };
+                    @endphp
+                    <a href="{{ $targetUrl }}" class="text-brand-dark text-sm font-semibold hover:text-brand-accent transition flex items-center gap-2">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($u->name) }}&background=2d433b&color=fff" class="w-8 h-8 rounded-full border border-gray-200" alt="Avatar">
+                        {{ $u->name }}
                     </a>
                 @else
                     <a href="{{ route('login') }}" class="bg-brand-primary text-white px-6 py-2 rounded-full text-sm font-semibold hover:bg-brand-dark transition shadow-md">

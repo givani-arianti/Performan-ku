@@ -65,72 +65,70 @@ class User extends Authenticatable
         return $this->hasMany(PengajuanIzin::class, 'user_id');
     }
 
-    public function calculatePerformanceKpi($tasks = null): array
+    public function calculatePerformanceKpi($tasks = null, $month = null, $year = null): array
     {
-        $tasks = $tasks ?: $this->assignedTasks()->with(['progress', 'evaluasi'])->get();
+        $month = $month ?: now()->month;
+        $year = $year ?: now()->year;
+
+        if ($tasks === null) {
+            $tasks = $this->assignedTasks()
+                ->with(['progress', 'checklists'])
+                ->whereMonth('deadline', $month)
+                ->whereYear('deadline', $year)
+                ->get();
+        }
+
         $totalTasks = $tasks->count();
-        $completedTasks = $tasks->whereIn('status', ['Completed', 'Reviewed']);
+
+        if ($totalTasks === 0) {
+            return [
+                'total_tasks' => 0,
+                'completed_tasks' => 0,
+                'target_score' => 0,
+                'timeliness_score' => 0,
+                'speed_score' => 0,
+                'final_score' => 0,
+                'category' => 'Belum Ada Tugas',
+                'month' => $month,
+                'year' => $year,
+            ];
+        }
+
+        $completedTasks = $tasks->filter(function($task) {
+            return in_array($task->status, ['Completed', 'Reviewed']) || ($task->status !== 'Revisi' && $task->persentase >= 100);
+        });
         $completedCount = $completedTasks->count();
-        $onTimeCount = $completedTasks->filter(function ($task) {
-            $completionLog = $task->progress->where('persentase', '>=', 100)->sortBy('tanggal_update')->first();
-            $completionDate = $completionLog
-                ? \Carbon\Carbon::parse($completionLog->tanggal_update)
-                : \Carbon\Carbon::parse($task->updated_at);
 
-            return $completionDate->startOfDay()->lte(\Carbon\Carbon::parse($task->deadline)->startOfDay());
-        })->count();
-        $evaluatedTasks = $tasks->filter(fn ($task) => $task->evaluasi);
+        // 1. Kuantitas / Persentase pengerjaan dari seluruh tugas dalam 1 bulan (Weight: 40%)
+        $totalProgressSum = $tasks->sum(fn($t) => $t->persentase);
+        $targetScore = round($totalProgressSum / $totalTasks, 2);
 
-        $targetScore = $totalTasks > 0 ? ($completedCount / $totalTasks) * 100 : 0;
-        $timelinessScore = $completedCount > 0 ? ($onTimeCount / $completedCount) * 100 : 0;
-        $qualityScore = $evaluatedTasks->count() > 0
-            ? $evaluatedTasks->avg(fn ($task) => $task->evaluasi->kualitas ?? $task->evaluasi->score)
-            : 0;
-            
-        // 1. Performance KPI (Skala 0-100)
-        // Komponen: Target (40%), Ketepatan Waktu (30%), Kualitas (30%)
-        $rawPerformance = ($targetScore * 0.40) + ($timelinessScore * 0.30) + ($qualityScore * 0.30);
+        // 2. Ketepatan Waktu Sesuai DL (Weight: 30%)
+        $totalTimelinessSum = $tasks->sum(fn($t) => $t->kecepatan_info['skor_ketepatan']);
+        $timelinessScore = round($totalTimelinessSum / $totalTasks, 2);
 
-        // 2. Competency / Soft Skill (Skala 0-100)
-        // Komponen: Komunikasi (25%), Kerja Sama (25%), Disiplin/Tanggung Jawab (25%), Problem Solving (25%)
-        $rawCompetency = $evaluatedTasks->count() > 0
-            ? ($evaluatedTasks->avg(fn ($task) => $task->evaluasi->komunikasi ?? 0) * 0.25)
-                + ($evaluatedTasks->avg(fn ($task) => $task->evaluasi->kerja_sama ?? 0) * 0.25)
-                + ($evaluatedTasks->avg(fn ($task) => $task->evaluasi->disiplin_tanggung_jawab ?? 0) * 0.25)
-                + ($evaluatedTasks->avg(fn ($task) => $task->evaluasi->problem_solving ?? 0) * 0.25)
-            : 0;
+        // 3. Kecepatan Pengerjaan Sesuai DL (Weight: 30%)
+        $totalSpeedSum = $tasks->sum(fn($t) => $t->kecepatan_info['skor_kecepatan']);
+        $speedScore = round($totalSpeedSum / $totalTasks, 2);
 
-        // 3. Absensi / Presensi (Skala 0-100)
-        $absensiRecords = \App\Models\Absensi::where('user_id', $this->id)
-            ->where('jenis', 'masuk')
-            ->get();
-        $totalAbsensi = $absensiRecords->count();
-        $tepatWaktuCount = $absensiRecords->where('status', 'Tepat waktu')->count();
-        $attendanceScore = $totalAbsensi > 0 ? ($tepatWaktuCount / $totalAbsensi) * 100 : 0;
-
-        // Weighted KPI: Performance KPI (60%), Competency/Soft Skill (30%), Absensi (10%)
-        $performanceScore = $rawPerformance * 0.60;
-        $competencyScore = $rawCompetency * 0.30;
-        $attendanceContribution = $attendanceScore * 0.10;
-        $finalScore = $performanceScore + $competencyScore + $attendanceContribution;
+        // Final score: Akumulasi penilaian dari keseluruhan tugas dalam 1 bulan
+        $finalScore = round(($targetScore * 0.40) + ($timelinessScore * 0.30) + ($speedScore * 0.30), 2);
 
         return [
-            'raw_performance' => round($rawPerformance, 2),
-            'raw_competency' => round($rawCompetency, 2),
-            'target_score' => round($targetScore, 2),
-            'timeliness_score' => round($timelinessScore, 2),
-            'quality_score' => round($qualityScore, 2),
-            'performance_score' => round($performanceScore, 2),
-            'competency_score' => round($competencyScore, 2),
-            'attendance_score' => round($attendanceScore, 2),
-            'attendance_contribution' => round($attendanceContribution, 2),
-            'final_score' => round($finalScore, 2),
+            'total_tasks' => $totalTasks,
+            'completed_tasks' => $completedCount,
+            'target_score' => $targetScore,
+            'timeliness_score' => $timelinessScore,
+            'speed_score' => $speedScore,
+            'final_score' => $finalScore,
             'category' => match (true) {
                 $finalScore >= 85 => 'Sangat Baik',
                 $finalScore >= 70 => 'Baik',
                 $finalScore >= 55 => 'Cukup',
                 default => 'Perlu Perbaikan',
             },
+            'month' => $month,
+            'year' => $year,
         ];
     }
 

@@ -68,89 +68,151 @@
                 </a>
             </div>
 
-            <nav class="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto relative z-10">
+            <nav class="flex-1 px-3 py-4 space-y-3 overflow-y-auto relative z-10">
                 @php
                     $activeRole = session('active_role', auth()->user()->role);
                     $displayRole = $activeRole === 'hr' || $activeRole === 'admin' ? 'HR / Admin' : $activeRole;
                 @endphp
+
                 @if($activeRole === 'admin' || $activeRole === 'hr')
                     <!-- Admin / HR Sidebar Links -->
-                    <a href="{{ route('admin.dashboard') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.dashboard') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-house w-5 text-center"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('admin.monitoring') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.monitoring') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-chart-line w-5 text-center"></i>
-                        <span>Monitoring Kinerja</span>
-                    </a>
-                    <a href="{{ route('admin.absensi') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.absensi') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-clock w-5 text-center"></i>
-                        <span>Rekap Absensi</span>
-                    </a>
-                    <a href="{{ route('admin.users') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.users') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-users w-5 text-center"></i>
-                        <span>Karyawan</span>
-                    </a>
+                    <div class="space-y-1">
+                        <p class="px-3 text-[10px] font-bold text-gray-400/80 uppercase tracking-wider">Menu Utama</p>
+                        <a href="{{ route('admin.dashboard') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.dashboard') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-house w-5 text-center text-xs"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="{{ route('admin.monitoring') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.monitoring') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-chart-line w-5 text-center text-xs"></i>
+                            <span>Monitoring Kinerja</span>
+                        </a>
+                    </div>
+
+                    <div class="space-y-1 pt-1.5">
+                        <p class="px-3 text-[10px] font-bold text-gray-400/80 uppercase tracking-wider">Data & Kehadiran</p>
+                        <a href="{{ route('admin.absensi') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.absensi') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-clock w-5 text-center text-xs"></i>
+                            <span>Rekap Absensi</span>
+                        </a>
+                        <a href="{{ route('admin.users') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('admin.users') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-users w-5 text-center text-xs"></i>
+                            <span>Kelola Karyawan</span>
+                        </a>
+                    </div>
+
                 @elseif($activeRole === 'karyawan')
                     <!-- Karyawan Sidebar Links -->
-                    <a href="{{ route('karyawan.dashboard') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('karyawan.dashboard') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-house w-5 text-center"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('karyawan.absensi') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('karyawan.absensi') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-clock w-5 text-center"></i>
-                        <span>Absensi</span>
-                    </a>
-                    <a href="{{ route('karyawan.tasks') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('karyawan.tasks') || Route::is('karyawan.task.detail') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-file-lines w-5 text-center"></i>
-                        <span>Tugas</span>
-                    </a>
+                    <div class="space-y-1">
+                        <p class="px-3 text-[10px] font-bold text-gray-400/80 uppercase tracking-wider">Menu Utama</p>
+                        <a href="{{ route('karyawan.dashboard') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('karyawan.dashboard') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-house w-5 text-center text-xs"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="{{ route('karyawan.absensi') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('karyawan.absensi') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-clock w-5 text-center text-xs"></i>
+                            <span>Presensi Harian</span>
+                        </a>
+                    </div>
+
+                    <div class="space-y-1 pt-1.5">
+                        <p class="px-3 text-[10px] font-bold text-gray-400/80 uppercase tracking-wider">Tugas & Kinerja</p>
+                        <a href="{{ route('karyawan.tasks') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('karyawan.tasks') || Route::is('karyawan.task.detail') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-file-lines w-5 text-center text-xs"></i>
+                            <span>Tugas Saya</span>
+                        </a>
+                        <a href="{{ route('karyawan.laporan') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('karyawan.laporan') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-file-invoice w-5 text-center text-xs"></i>
+                            <span>Laporan Kinerja</span>
+                        </a>
+                    </div>
+
                 @elseif($activeRole === 'manajer')
                     <!-- Manajer Sidebar Links -->
-                    <a href="{{ route('manajer.dashboard') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.dashboard') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-house w-5 text-center"></i>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('manajer.tasks') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.tasks') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-file-lines w-5 text-center"></i>
-                        <span>Tugas</span>
-                    </a>
-                    <a href="{{ route('manajer.performance') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.performance') || Route::is('manajer.employee.detail') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-users w-5 text-center"></i>
-                        <span>Karyawan</span>
-                    </a>
-                    <a href="{{ route('manajer.evaluations') }}" 
-                        class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.evaluations') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                        <i class="fa-solid fa-chart-pie w-5 text-center"></i>
-                        <span>Riwayat Evaluasi</span>
-                    </a>
+                    <div class="space-y-1">
+                        <p class="px-3 text-[10px] font-bold text-gray-400/80 uppercase tracking-wider">Menu Utama</p>
+                        <a href="{{ route('manajer.dashboard') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.dashboard') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-house w-5 text-center text-xs"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="{{ route('manajer.tasks') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.tasks') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-file-lines w-5 text-center text-xs"></i>
+                            <span>Kelola Tugas</span>
+                        </a>
+                    </div>
+
+                    <div class="space-y-1 pt-1.5">
+                        <p class="px-3 text-[10px] font-bold text-gray-400/80 uppercase tracking-wider">Evaluasi Tim</p>
+                        <a href="{{ route('manajer.performance') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.performance') || Route::is('manajer.employee.detail') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-users w-5 text-center text-xs"></i>
+                            <span>Kinerja Karyawan</span>
+                        </a>
+                        <a href="{{ route('manajer.evaluations') }}" 
+                            class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('manajer.evaluations') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                            <i class="fa-solid fa-chart-pie w-5 text-center text-xs"></i>
+                            <span>Riwayat Evaluasi</span>
+                        </a>
+                    </div>
                 @endif
 
-                <a href="{{ route('profile.index') }}" 
-                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('profile.index') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-400 hover:bg-[#2a423a]/50 hover:text-white' }}">
-                    <i class="fa-solid fa-user-gear w-5 text-center"></i>
-                    <span>Profil Saya</span>
-                </a>
+                <div class="space-y-1 pt-1.5">
+                    <p class="px-3 text-[10px] font-bold text-gray-400/80 uppercase tracking-wider">Akun</p>
+                    <a href="{{ route('profile.index') }}" 
+                        class="flex items-center space-x-3 px-3 py-2 rounded-xl text-sm font-medium transition duration-150 {{ Route::is('profile.index') ? 'bg-[#2a423a] text-white shadow-sm' : 'text-gray-300 hover:bg-[#2a423a]/50 hover:text-white' }}">
+                        <i class="fa-solid fa-user-gear w-5 text-center text-xs"></i>
+                        <span>Profil Saya</span>
+                    </a>
+                </div>
 
             </nav>
 
-            <!-- Sidebar Footer / Logout -->
-            <div class="p-4 border-t border-white/5 relative z-10">
+            <!-- Bottom Section: Quick Info Widget & User Profile Card -->
+            <div class="p-3 border-t border-white/10 relative z-10 space-y-2.5 bg-[#1a2a24]/30">
+                <!-- Info Status Card -->
+                <div class="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="font-bold text-slate-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-day text-[#4d7a6b]"></i>
+                            <span>{{ now()->locale('id')->isoFormat('D MMMM Y') }}</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            Online
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 flex items-center justify-between">
+                        <span>Sistem KPI & Presensi</span>
+                        <span class="text-gray-500 font-mono text-[9px]">v1.0</span>
+                    </p>
+                </div>
+
+                <!-- User Mini Card -->
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+                    <div class="h-8 w-8 rounded-lg bg-[#4d7a6b] text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-sm">
+                        {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-white truncate">{{ auth()->user()->name }}</p>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-semibold truncate">{{ $displayRole }}</p>
+                    </div>
+                </div>
+
+                <!-- Logout Button -->
                 <form action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin keluar?')">
                     @csrf
-                    <button type="submit" class="flex w-full items-center space-x-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition duration-150">
-                        <i class="fa-solid fa-right-from-bracket w-5 text-center"></i>
-                        <span>Keluar</span>
+                    <button type="submit" class="flex w-full items-center justify-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition duration-150">
+                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                        <span>Keluar dari Aplikasi</span>
                     </button>
                 </form>
             </div>
@@ -196,8 +258,26 @@
                                         'time' => \Carbon\Carbon::parse($t->deadline)->format('d M')
                                     ]);
                                 }
+
+                                $revTasks = $user->assignedTasks()->where('status', 'Revisi')->get();
+                                foreach ($revTasks as $rt) {
+                                    $notifications->push([
+                                        'icon' => 'fa-solid fa-triangle-exclamation text-amber-500',
+                                        'title' => 'Tugas Perlu Revisi',
+                                        'text' => "Tugas '{$rt->judul_tugas}' memerlukan perbaikan/revisi dari manajer.",
+                                        'link' => route('karyawan.task.detail', $rt->id),
+                                        'time' => 'Revisi'
+                                    ]);
+                                }
                             } elseif ($user->role === 'manajer') {
-                                $pendingEval = \App\Models\Task::where('status', 'Completed')->count();
+                                $pendingEval = \App\Models\Task::where('status', 'Completed')
+                                    ->when($user->divisi, function ($query) use ($user) {
+                                        $query->where(function ($sub) use ($user) {
+                                            $sub->where('divisi', $user->divisi)
+                                                ->orWhereHas('karyawan', fn ($employee) => $employee->where('divisi', $user->divisi));
+                                        });
+                                    })
+                                    ->count();
                                 if ($pendingEval > 0) {
                                     $notifications->push([
                                         'icon' => 'fa-solid fa-file-signature text-blue-500',
@@ -361,7 +441,7 @@
             </aside>
 
             <!-- Main Content Container -->
-            <main class="flex-1 overflow-y-auto p-6 focus:outline-none">
+            <main class="flex-1 overflow-y-auto p-4 focus:outline-none">
                 <!-- Alerts (Flash Messages) -->
                 @if (session('success'))
                     <div class="mb-6 p-4 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-sm flex items-center shadow-sm">

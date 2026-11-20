@@ -26,7 +26,7 @@ class RoleMiddleware
         // Map hr to admin in checking
         $effectiveRole = $activeRole === 'hr' ? 'admin' : $activeRole;
         
-        if (in_array($effectiveRole, $roles) || ($user->role === 'admin' && in_array('manajer', $roles) && $activeRole === 'manajer')) {
+        if (in_array($effectiveRole, $roles, true)) {
             return $next($request);
         }
 

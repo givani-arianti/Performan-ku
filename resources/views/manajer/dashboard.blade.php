@@ -4,15 +4,13 @@
 @section('page_title', 'Dashboard')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Welcome banner with integrated background image -->
-    <div class="relative bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 flex items-stretch h-40">
-        <div class="p-6 flex-1 flex flex-col justify-center relative z-10 w-1/2">
-            <p class="text-slate-500 text-sm font-medium mb-1">Selamat Datang,</p>
-            <h2 class="text-2xl font-bold text-slate-800 mb-1.5">{{ auth()->user()->name }}</h2>
-            <p class="text-xs text-slate-500 max-w-md">
-                Anda memiliki hak akses untuk melakukan penilaian/evaluasi terhadap hasil kerja karyawan.
-            </p>
+<div class="space-y-4">
+    <!-- Welcome banner -->
+    <div class="relative bg-white rounded-xl overflow-hidden shadow-sm border border-slate-100 flex items-stretch h-24">
+        <div class="px-5 flex-1 flex flex-col justify-center relative z-10 w-1/2">
+            <p class="text-slate-500 text-xs font-medium">Selamat Datang,</p>
+            <h2 class="text-lg font-bold text-slate-800">{{ auth()->user()->name }}</h2>
+            <p class="text-xs text-slate-400">Penilaian & evaluasi hasil kerja karyawan.</p>
         </div>
         <div class="absolute right-0 top-0 bottom-0 w-2/3">
             <div class="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent z-10"></div>
@@ -21,55 +19,63 @@
     </div>
 
     <!-- 4 Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <!-- Card 1 -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-            <div class="w-14 h-14 rounded-full bg-[#f4f2ee] flex items-center justify-center text-[#2d433b]">
-                <i class="fa-solid fa-users text-xl"></i>
+        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-[#f4f2ee] flex items-center justify-center text-[#2d433b] shrink-0">
+                <i class="fa-solid fa-users text-base"></i>
             </div>
             <div>
-                <p class="text-xs text-slate-500 font-medium mb-1">Total Karyawan</p>
-                <p class="text-2xl font-bold text-slate-800">{{ $totalEmployees }}</p>
+                <p class="text-xs text-slate-500 font-medium">Total Karyawan</p>
+                <p class="text-xl font-bold text-slate-800">{{ $totalEmployees }}</p>
             </div>
         </div>
         <!-- Card 2 -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-            <div class="w-14 h-14 rounded-full bg-[#f4f2ee] flex items-center justify-center text-[#2d433b]">
-                <i class="fa-solid fa-file-signature text-xl"></i>
+        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-[#f4f2ee] flex items-center justify-center text-[#2d433b] shrink-0">
+                <i class="fa-solid fa-file-signature text-base"></i>
             </div>
             <div>
-                <p class="text-xs text-slate-500 font-medium mb-1">Tugas Dievaluasi</p>
-                <p class="text-2xl font-bold text-slate-800">{{ $reviewedTasks }}</p>
+                <p class="text-xs text-slate-500 font-medium">Tugas Dievaluasi</p>
+                <p class="text-xl font-bold text-slate-800">{{ $reviewedTasks }}</p>
             </div>
         </div>
         <!-- Card 3 -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-            <div class="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center text-amber-600">
-                <i class="fa-solid fa-hourglass-half text-xl"></i>
+        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                <i class="fa-solid fa-hourglass-half text-base"></i>
             </div>
             <div>
-                <p class="text-xs text-slate-500 font-medium mb-1">Perlu Evaluasi</p>
-                <p class="text-2xl font-bold text-slate-800">{{ $pendingEvaluations->count() }}</p>
+                <p class="text-xs text-slate-500 font-medium">Perlu Evaluasi</p>
+                <div class="flex items-baseline gap-1.5">
+                    <p class="text-xl font-bold text-slate-800">{{ $pendingEvaluations->count() }}</p>
+                    @if(isset($revisiTasksCount) && $revisiTasksCount > 0)
+                        <span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded-full border border-amber-200">{{ $revisiTasksCount }} Revisi</span>
+                    @endif
+                </div>
             </div>
         </div>
         <!-- Card 4 -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center space-x-4">
-            <div class="w-14 h-14 rounded-full bg-[#f4f2ee] flex items-center justify-center text-[#2d433b]">
-                <i class="fa-solid fa-chart-line text-xl"></i>
+        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-[#f4f2ee] flex items-center justify-center text-[#2d433b] shrink-0">
+                <i class="fa-solid fa-chart-line text-base"></i>
             </div>
             <div>
-                <p class="text-xs text-slate-500 font-medium mb-1">KPI Rata-rata</p>
-                <p class="text-2xl font-bold text-slate-800">{{ $averageScore }}%</p>
+                <p class="text-xs text-slate-500 font-medium">KPI Rata-rata</p>
+                <p class="text-xl font-bold text-slate-800">{{ $averageScore }}%</p>
             </div>
         </div>
     </div>
 
     <!-- Manager Chart Section -->
-    <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-        <h3 class="font-bold text-slate-800 text-sm mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-chart-column text-[#4d7a6b]"></i> Performa KPI Karyawan Tertinggi (Top 5)
-        </h3>
-        <div class="h-64 relative">
+    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 mb-3">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-chart-column text-[#4d7a6b]"></i> Grafik Performa Karyawan
+            </h3>
+            <span class="text-xs text-slate-400 font-semibold bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">Evaluasi Akumulasi Bulanan (%)</span>
+        </div>
+        <div class="h-52 relative">
             <canvas id="managerLeaderboardChart"></canvas>
         </div>
     </div>
@@ -77,26 +83,52 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const ctxLeaderboard = document.getElementById('managerLeaderboardChart').getContext('2d');
+        const names = {!! json_encode($employeeScores->pluck('name')) !!};
+        const scores = {!! json_encode($employeeScores->pluck('avg_score')) !!};
+        const palette = ['#21352f', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#4b5563'];
+
         new Chart(ctxLeaderboard, {
             type: 'bar',
             data: {
-                labels: {!! json_encode($employeeScores->pluck('name')) !!},
+                labels: names,
                 datasets: [{
-                    label: 'Skor Akhir KPI (%)',
-                    data: {!! json_encode($employeeScores->pluck('avg_score')) !!},
+                    label: 'Skor Performa Karyawan (%)',
+                    data: scores,
                     backgroundColor: '#21352f',
                     borderRadius: 8,
-                    barThickness: 28
+                    maxBarThickness: 45
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: function(items) {
+                                return 'Nama Karyawan: ' + items[0].label;
+                            },
+                            label: function(context) {
+                                return ' Skor Evaluasi Bulanan: ' + context.parsed.y + '%';
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    y: { beginAtZero: true, max: 100 }
+                    y: { 
+                        beginAtZero: true, 
+                        max: 100,
+                        ticks: {
+                            callback: function(value) { return value + '%'; }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { weight: 'bold', size: 12 }
+                        }
+                    }
                 }
             }
         });
@@ -104,11 +136,11 @@
 </script>
 
     <!-- Two Columns Layout for Charts/Tables -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Tasks Waiting for Evaluation Table -->
-        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-            <div class="px-6 py-5 border-b border-slate-50 flex items-center justify-between">
-                <h3 class="font-bold text-slate-800">Menunggu Evaluasi</h3>
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-5 py-3.5 border-b border-slate-50 flex items-center justify-between">
+                <h3 class="font-bold text-sm text-slate-800">Menunggu Evaluasi</h3>
                 <a href="{{ route('manajer.tasks') }}" class="text-xs font-semibold text-[#4d7a6b] hover:text-[#2d433b] flex items-center">
                     Lihat Semua <i class="fa-solid fa-arrow-right ml-1"></i>
                 </a>
@@ -117,25 +149,26 @@
                 <table class="w-full text-left text-sm">
                     <thead class="bg-[#fbfaf8] text-slate-500 font-medium text-xs">
                         <tr>
-                            <th class="px-6 py-3 font-medium">Nama Tugas</th>
-                            <th class="px-6 py-3 font-medium">Karyawan</th>
-                            <th class="px-6 py-3 font-medium">Selesai Pada</th>
-                            <th class="px-6 py-3 font-medium text-right">Aksi</th>
+                            <th class="px-5 py-2.5 font-medium">Nama Tugas</th>
+                            <th class="px-5 py-2.5 font-medium">Karyawan</th>
+                            <th class="px-5 py-2.5 font-medium">Selesai Pada</th>
+                            <th class="px-5 py-2.5 font-medium text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
                         @forelse($pendingEvaluations as $task)
                             <tr class="hover:bg-slate-50">
-                                <td class="px-6 py-4 font-medium text-slate-800 flex items-center gap-3">
-                                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                                <td class="px-5 py-3 font-medium text-slate-800 flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0"></span>
                                     {{ $task->judul_tugas }}
                                 </td>
-                                <td class="px-6 py-4 text-slate-600 font-medium">
-                                    {{ $task->karyawan->name }}
-                                </td>
-                                <td class="px-6 py-4 text-slate-600">
+                                <td class="px-5 py-3 text-slate-600 font-medium">{{ $task->karyawan->name }}</td>
+                                <td class="px-5 py-3 text-slate-600">
                                     @php
-                                        $log = $task->progress()->where('persentase', '>=', 100)->orderBy('tanggal_update', 'asc')->first();
+                                        $log = $task->progress
+                                            ->filter(fn ($item) => (int) $item->persentase >= 100)
+                                            ->sortByDesc('tanggal_update')
+                                            ->first();
                                         $date = $log ? \Carbon\Carbon::parse($log->tanggal_update) : \Carbon\Carbon::parse($task->updated_at);
                                     @endphp
                                     <span class="flex items-center space-x-1.5 {{ $date->gt(\Carbon\Carbon::parse($task->deadline)) ? 'text-red-500 font-medium' : 'text-slate-700' }}">
@@ -145,15 +178,15 @@
                                         @endif
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right">
-                                    <a href="{{ route('manajer.task.evaluate', $task->id) }}" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-[#e9eee6] text-[#2d433b] hover:bg-[#d6e3db] transition">
+                                <td class="px-5 py-3 text-right">
+                                    <a href="{{ route('manajer.task.evaluate', $task->id) }}" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e9eee6] text-[#2d433b] hover:bg-[#d6e3db] transition">
                                         Beri Evaluasi
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-8 text-center text-slate-400 text-sm">Tidak ada tugas menunggu evaluasi.</td>
+                                <td colspan="4" class="px-5 py-6 text-center text-slate-400 text-sm">Tidak ada tugas menunggu evaluasi.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -162,14 +195,14 @@
         </div>
 
         <!-- Leaderboard -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-            <h3 class="font-bold text-slate-800 self-start mb-6">Top Kinerja Karyawan</h3>
-            <div class="flex-1 space-y-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex flex-col">
+            <h3 class="font-bold text-sm text-slate-800 self-start mb-4">Top Kinerja Karyawan</h3>
+            <div class="flex-1 space-y-3">
                 @php $rank = 1; @endphp
                 @forelse($employeeScores->take(4) as $score)
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-[#f4f2ee] flex items-center justify-center font-bold text-sm text-[#2d433b]">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-full bg-[#f4f2ee] flex items-center justify-center font-bold text-xs text-[#2d433b]">
                                 {{ $rank++ }}
                             </div>
                             <div>
@@ -184,25 +217,9 @@
                 @endforelse
             </div>
             @if($employeeScores->count() > 4)
-                <a href="{{ route('manajer.performance') }}" class="mt-4 text-center text-xs font-semibold text-[#4d7a6b] hover:text-[#2d433b]">Lihat Peringkat Lengkap</a>
+                <a href="{{ route('manajer.performance') }}" class="mt-3 text-center text-xs font-semibold text-[#4d7a6b] hover:text-[#2d433b]">Lihat Peringkat Lengkap</a>
             @endif
         </div>
-    </div>
-    
-    <!-- Bottom Banner -->
-    <div class="bg-[#e9eee6] rounded-2xl border border-[#d6e3db] p-6 flex items-center justify-between shadow-sm">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-[#2d433b]">
-                <i class="fa-solid fa-chart-column text-xl"></i>
-            </div>
-            <div>
-                <h4 class="font-bold text-slate-800 text-base">Evaluasi Berkala Tingkatkan Kualitas</h4>
-                <p class="text-sm text-slate-600">Pastikan Anda memberikan feedback yang objektif dan membangun kepada tim.</p>
-            </div>
-        </div>
-        <a href="{{ route('manajer.performance') }}" class="bg-[#2d433b] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a2a24] transition shadow-sm">
-            Lihat Laporan Kinerja <i class="fa-solid fa-arrow-right ml-1"></i>
-        </a>
     </div>
 </div>
 @endsection

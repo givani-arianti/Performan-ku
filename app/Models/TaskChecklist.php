@@ -10,10 +10,13 @@ class TaskChecklist extends Model
         'task_id',
         'judul',
         'is_completed',
+        'catatan_revisi',
+        'perlu_revisi',
     ];
 
     protected $casts = [
-        'is_completed' => 'boolean',
+        'is_completed'  => 'boolean',
+        'perlu_revisi'  => 'boolean',
     ];
 
     /**

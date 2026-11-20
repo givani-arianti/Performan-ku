@@ -8,37 +8,122 @@
     <!-- Top Action bar -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <p class="text-sm text-slate-500">Delegasikan tugas kerja baru beserta target dan batas waktu penyelesaian kepada karyawan.</p>
+            <h1 class="text-xl font-extrabold text-slate-800">Manajemen & Rekapan Tugas Tim</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Kelola penugasan, pantau pengerjaan, dan berikan evaluasi atau revisi pada hasil kerja karyawan.</p>
         </div>
         <button onclick="toggleModal('create-modal')" class="bg-navy-800 text-white font-semibold text-xs px-4 py-2.5 rounded-lg hover:bg-navy-700 shadow transition flex items-center self-start">
             <i class="fa-solid fa-plus mr-1.5"></i> Buat Tugas Baru
         </button>
     </div>
 
-    <!-- Filter Form -->
-    <form method="GET" action="{{ route('manajer.tasks') }}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 items-end">
-        <div class="flex-1 w-full">
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Karyawan</label>
-            <select name="karyawan_id" class="w-full rounded-lg border-slate-300 text-sm focus:border-navy-500 focus:ring-navy-500 py-2">
+    <!-- Monthly Summary Banner (Rekapan Tugas Karyawan Per Bulan) -->
+    @php
+        $namaBulan = [
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+        ];
+        $labelPeriode = ($bulan && $bulan !== 'all' ? ($namaBulan[$bulan] ?? 'Bulan ' . $bulan) : 'Semua Bulan') . ' ' . $tahun;
+    @endphp
+
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+                <h3 class="font-extrabold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-[#21352f]"></i>
+                    Rekapan Tugas Tim Karyawan (Periode: {{ $labelPeriode }})
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Ringkasan status tugas seluruh karyawan berdasarkan periode dan filter yang aktif.</p>
+            </div>
+            <a href="{{ route('manajer.performance') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-navy-800 bg-slate-100 hover:bg-slate-200 transition shrink-0">
+                <i class="fa-solid fa-users"></i> Lihat Rekap KPI Karyawan
+            </a>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5">
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Total Tugas</span>
+                <span class="text-2xl font-extrabold text-slate-800">{{ $monthlySummary['total'] ?? 0 }}</span>
+                <p class="text-[10px] text-slate-500 mt-0.5">{{ $labelPeriode }}</p>
+            </div>
+            <div class="p-4 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                <span class="block text-[10px] font-bold text-emerald-700 uppercase tracking-wider mb-1">Selesai / Dievaluasi</span>
+                <span class="text-2xl font-extrabold text-emerald-700">{{ $monthlySummary['completed'] ?? 0 }}</span>
+                <p class="text-[10px] text-emerald-600 mt-0.5">Sudah / Menunggu Review</p>
+            </div>
+            <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200">
+                <span class="block text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Dalam Revisi</span>
+                <span class="text-2xl font-extrabold text-amber-800">{{ $monthlySummary['revisi'] ?? 0 }}</span>
+                <p class="text-[10px] text-amber-700 mt-0.5">Perlu perbaikan karyawan</p>
+            </div>
+            <div class="p-4 rounded-xl bg-indigo-50/60 border border-indigo-100">
+                <span class="block text-[10px] font-bold text-indigo-700 uppercase tracking-wider mb-1">Dalam Pengerjaan</span>
+                <span class="text-2xl font-extrabold text-indigo-700">{{ $monthlySummary['in_progress'] ?? 0 }}</span>
+                <p class="text-[10px] text-indigo-600 mt-0.5">Pending / In Progress</p>
+            </div>
+            <div class="p-4 rounded-xl bg-blue-50/60 border border-blue-100 col-span-2 sm:col-span-1">
+                <span class="block text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">Tepat Waktu</span>
+                <span class="text-2xl font-extrabold text-blue-800">{{ $monthlySummary['on_time'] ?? 0 }}</span>
+                <p class="text-[10px] text-blue-600 mt-0.5">Sesuai tenggat DL</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form Komprehensif (Karyawan, Divisi, Bulan, Tahun) -->
+    <form method="GET" action="{{ route('manajer.tasks') }}" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row flex-wrap gap-3 items-end">
+        <!-- Filter Karyawan -->
+        <div class="flex-1 min-w-[160px] w-full">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Filter Karyawan</label>
+            <select name="karyawan_id" class="w-full rounded-xl border border-slate-300 text-xs font-semibold focus:border-navy-500 focus:ring-navy-500 py-2.5 px-3 bg-white">
                 <option value="">Semua Karyawan</option>
                 @foreach($employees as $emp)
-                    <option value="{{ $emp->id }}" {{ request('karyawan_id') == $emp->id ? 'selected' : '' }}>{{ $emp->name }}</option>
+                    <option value="{{ $emp->id }}" {{ (string)$karyawanId === (string)$emp->id ? 'selected' : '' }}>{{ $emp->name }}</option>
                 @endforeach
             </select>
         </div>
-        <div class="flex-1 w-full">
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Divisi</label>
-            <select name="divisi" class="w-full rounded-lg border-slate-300 text-sm focus:border-navy-500 focus:ring-navy-500 py-2">
+
+        @if(!$managerDivisi)
+        <!-- Filter Divisi -->
+        <div class="flex-1 min-w-[150px] w-full">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Filter Divisi</label>
+            <select name="divisi" class="w-full rounded-xl border border-slate-300 text-xs font-semibold focus:border-navy-500 focus:ring-navy-500 py-2.5 px-3 bg-white">
                 <option value="">Semua Divisi</option>
-                @foreach($divisiList as $divisi)
-                    <option value="{{ $divisi }}" {{ request('divisi') == $divisi ? 'selected' : '' }}>{{ $divisi }}</option>
+                @foreach($divisiList as $d)
+                    <option value="{{ $d }}" {{ $divisi === $d ? 'selected' : '' }}>{{ $d }}</option>
                 @endforeach
             </select>
         </div>
+        @endif
+
+        <!-- Filter Bulan -->
+        <div class="w-full sm:w-auto min-w-[130px]">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Filter Bulan</label>
+            <select name="bulan" class="w-full rounded-xl border border-slate-300 text-xs font-semibold focus:border-navy-500 focus:ring-navy-500 py-2.5 px-3 bg-white">
+                <option value="all" {{ $bulan === 'all' ? 'selected' : '' }}>Semua Bulan</option>
+                @foreach($namaBulan as $num => $nama)
+                    <option value="{{ $num }}" {{ $bulan === $num ? 'selected' : '' }}>{{ $nama }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <!-- Filter Tahun -->
+        <div class="w-full sm:w-auto min-w-[100px]">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Tahun</label>
+            <select name="tahun" class="w-full rounded-xl border border-slate-300 text-xs font-semibold focus:border-navy-500 focus:ring-navy-500 py-2.5 px-3 bg-white">
+                @for($y = now()->year - 2; $y <= now()->year + 1; $y++)
+                    <option value="{{ $y }}" {{ (int)$tahun === $y ? 'selected' : '' }}>{{ $y }}</option>
+                @endfor
+            </select>
+        </div>
+
         <div class="flex gap-2 w-full sm:w-auto">
-            <button type="submit" class="w-full sm:w-auto bg-navy-50 text-navy-700 hover:bg-navy-100 font-semibold px-4 py-2 rounded-lg text-sm border border-navy-100 transition">Filter</button>
-            @if(request()->filled('karyawan_id') || request()->filled('divisi'))
-                <a href="{{ route('manajer.tasks') }}" class="w-full sm:w-auto text-center bg-slate-50 text-slate-600 hover:bg-slate-100 font-semibold px-4 py-2 rounded-lg text-sm border border-slate-200 transition">Reset</a>
+            <button type="submit" class="w-full sm:w-auto bg-[#21352f] text-white hover:bg-[#1a2a24] font-bold px-4 py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-filter"></i> Filter
+            </button>
+            @if(request()->filled('karyawan_id') || request()->filled('divisi') || request()->filled('bulan') || request()->filled('tahun'))
+                <a href="{{ route('manajer.tasks') }}" class="w-full sm:w-auto text-center bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold px-3.5 py-2.5 rounded-xl text-xs border border-slate-200 transition">
+                    Reset
+                </a>
             @endif
         </div>
     </form>
@@ -52,15 +137,16 @@
                     <tr>
                         <th class="px-6 py-4">Tugas</th>
                         <th class="px-6 py-4">Karyawan Pelaksana</th>
-                        <th class="px-6 py-4">Target Pekerjaan</th>
                         <th class="px-6 py-4">Batas Waktu</th>
-                        <th class="px-6 py-4">Progres</th>
+                        <th class="px-6 py-4">% Progres</th>
+                        <th class="px-6 py-4">Kecepatan Sesuai DL</th>
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($activeTasks as $task)
+                        @php $kecepatan = $task->kecepatan_info; @endphp
                         <tr class="hover:bg-slate-50 transition duration-150">
                             <td class="px-6 py-4">
                                 <div class="font-semibold text-slate-800">{{ $task->judul_tugas }}</div>
@@ -72,9 +158,6 @@
                             <td class="px-6 py-4 text-slate-700">
                                 <div class="font-medium">{{ $task->karyawan->name }}</div>
                                 <div class="text-[10px] text-slate-400">{{ $task->karyawan->email }}</div>
-                            </td>
-                            <td class="px-6 py-4 text-slate-600">
-                                {{ $task->target }}
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-slate-700 font-medium">
@@ -89,13 +172,19 @@
                                     <div class="w-20 bg-slate-200 rounded-full h-1.5 overflow-hidden">
                                         <div class="bg-navy-800 h-1.5 rounded-full" style="width: {{ $task->persentase }}%"></div>
                                     </div>
-                                    <span class="text-xs text-slate-500 font-bold">{{ $task->persentase }}%</span>
+                                    <span class="text-xs text-slate-700 font-bold">{{ $task->persentase }}%</span>
                                 </div>
                                 @if($task->checklists->count() > 0)
                                     <div class="text-[10px] text-slate-500 font-medium mt-1">
                                         <i class="fa-solid fa-list-check text-navy-800 mr-0.5"></i> {{ $task->checklists->where('is_completed', true)->count() }}/{{ $task->checklists->count() }} Checklist
                                     </div>
                                 @endif
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {{ $kecepatan['color'] }} border">
+                                    <i class="fa-solid fa-gauge-high mr-1 text-[10px]"></i>
+                                    {{ $kecepatan['label'] }}
+                                </span>
                             </td>
                             <td class="px-6 py-4">
                                 @if($task->status === 'Pending')
@@ -136,25 +225,35 @@
         </div>
     </div>
 
-    <h2 class="text-lg font-bold text-slate-800 pt-6">Tugas Selesai</h2>
-    <!-- Completed Tasks List Table -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <!-- Section: Tugas Dalam Revisi -->
+    <h2 class="text-lg font-bold text-slate-800 pt-6 flex items-center justify-between">
+        <span class="flex items-center gap-2">
+            <i class="fa-solid fa-arrows-rotate text-amber-600"></i>
+            Tugas Dalam Revisi (Menunggu Perbaikan Karyawan)
+        </span>
+        @if($revisiTasks->count() > 0)
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                {{ $revisiTasks->count() }} Tugas Perlu Revisi
+            </span>
+        @endif
+    </h2>
+    <div class="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b border-slate-200">
+                <thead class="bg-amber-50/70 text-slate-600 font-semibold uppercase text-xs border-b border-amber-200">
                     <tr>
-                        <th class="px-6 py-4">Tugas</th>
+                        <th class="px-6 py-4">Tugas & Instruksi</th>
                         <th class="px-6 py-4">Karyawan Pelaksana</th>
-                        <th class="px-6 py-4">Target Pekerjaan</th>
                         <th class="px-6 py-4">Batas Waktu</th>
-                        <th class="px-6 py-4">Progres</th>
+                        <th class="px-6 py-4">Catatan Revisi Terakhir</th>
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @forelse($completedTasks as $task)
-                        <tr class="hover:bg-slate-50 transition duration-150">
+                    @forelse($revisiTasks as $task)
+                        @php $kecepatan = $task->kecepatan_info; @endphp
+                        <tr class="hover:bg-amber-50/30 transition duration-150">
                             <td class="px-6 py-4">
                                 <div class="font-semibold text-slate-800">{{ $task->judul_tugas }}</div>
                                 @if($task->divisi)
@@ -166,8 +265,78 @@
                                 <div class="font-medium">{{ $task->karyawan->name }}</div>
                                 <div class="text-[10px] text-slate-400">{{ $task->karyawan->email }}</div>
                             </td>
-                            <td class="px-6 py-4 text-slate-600">
-                                {{ $task->target }}
+                            <td class="px-6 py-4">
+                                <div class="text-slate-700 font-medium">
+                                    {{ \Carbon\Carbon::parse($task->deadline)->format('d M Y') }}
+                                </div>
+                                <div class="text-xs mt-0.5 {{ \Carbon\Carbon::parse($task->deadline)->isPast() ? 'text-red-500 font-semibold' : 'text-slate-400' }}">
+                                    {{ \Carbon\Carbon::parse($task->deadline)->diffForHumans() }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-lg border border-amber-200 line-clamp-2 max-w-xs">
+                                    {{ $task->evaluasi->catatan ?? 'Menunggu perbaikan dokumen dari karyawan' }}
+                                </p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <i class="fa-solid fa-arrows-rotate mr-1 text-[10px]"></i> Perlu Revisi
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center space-x-1.5 whitespace-nowrap">
+                                <a href="{{ route('manajer.task.evaluate', $task->id) }}" 
+                                    class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg transition">
+                                    <i class="fa-solid fa-pen-to-square mr-1"></i> Evaluasi Ulang
+                                </a>
+                                <button onclick="openEditModal({{ json_encode($task) }})" 
+                                    class="inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-semibold text-navy-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-slate-400">
+                                <i class="fa-solid fa-check-double text-3xl mb-1 text-slate-300"></i>
+                                <p class="text-xs">Tidak ada tugas yang sedang dalam revisi.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h2 class="text-lg font-bold text-slate-800 pt-6">Tugas Selesai</h2>
+    <!-- Completed Tasks List Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4">Tugas</th>
+                        <th class="px-6 py-4">Karyawan Pelaksana</th>
+                        <th class="px-6 py-4">Batas Waktu</th>
+                        <th class="px-6 py-4">% Progres</th>
+                        <th class="px-6 py-4">Kecepatan Sesuai DL</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($completedTasks as $task)
+                        @php $kecepatan = $task->kecepatan_info; @endphp
+                        <tr class="hover:bg-slate-50 transition duration-150">
+                            <td class="px-6 py-4">
+                                <div class="font-semibold text-slate-800">{{ $task->judul_tugas }}</div>
+                                @if($task->divisi)
+                                    <div class="inline-flex mt-1 mb-0.5 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100">{{ $task->divisi }}</div>
+                                @endif
+                                <div class="text-xs text-slate-400 mt-1 truncate max-w-xs">{{ $task->deskripsi }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-slate-700">
+                                <div class="font-medium">{{ $task->karyawan->name }}</div>
+                                <div class="text-[10px] text-slate-400">{{ $task->karyawan->email }}</div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="text-slate-700 font-medium">
@@ -182,8 +351,14 @@
                                     <div class="w-20 bg-slate-200 rounded-full h-1.5 overflow-hidden">
                                         <div class="bg-emerald-500 h-1.5 rounded-full" style="width: {{ $task->persentase }}%"></div>
                                     </div>
-                                    <span class="text-xs text-slate-500 font-bold">{{ $task->persentase }}%</span>
+                                    <span class="text-xs text-slate-700 font-bold">{{ $task->persentase }}%</span>
                                 </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold {{ $kecepatan['color'] }} border">
+                                    <i class="fa-solid fa-gauge-high mr-1 text-[10px]"></i>
+                                    {{ $kecepatan['label'] }}
+                                </span>
                             </td>
                             <td class="px-6 py-4">
                                 @if($task->status === 'Completed')
@@ -197,6 +372,17 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-center space-x-1.5 whitespace-nowrap">
+                                @if($task->status === 'Completed')
+                                    <a href="{{ route('manajer.task.evaluate', $task->id) }}" 
+                                        class="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition">
+                                        <i class="fa-solid fa-star mr-1"></i> Beri Evaluasi
+                                    </a>
+                                @else
+                                    <a href="{{ route('manajer.task.evaluate', $task->id) }}" 
+                                        class="inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                                        <i class="fa-solid fa-eye mr-1"></i> Nilai ({{ $task->evaluasi->score ?? '-' }})
+                                    </a>
+                                @endif
                                 <button onclick="openEditModal({{ json_encode($task) }})" 
                                     class="inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-semibold text-navy-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -250,10 +436,19 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="create_target" class="block text-xs font-semibold text-slate-600 mb-1">Target Pekerjaan</label>
-                    <input type="text" id="create_target" name="target" required
-                        class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm"
-                        placeholder="Contoh: Selesai 100% / 5 Desain">
+                    <div class="flex items-center justify-between mb-1">
+                        <label for="create_target" class="block text-xs font-semibold text-slate-600">Target Pekerjaan (%)</label>
+                        <span class="text-[10px] text-emerald-600 font-bold">Maks. 100%</span>
+                    </div>
+                    <div class="relative">
+                        <input type="number" id="create_target" name="target" min="1" max="100" value="100" required
+                            oninput="if(this.value > 100) this.value = 100; if(this.value < 1 && this.value !== '') this.value = 1;"
+                            class="block w-full rounded-lg border border-slate-300 pl-3 pr-8 py-2 text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm font-semibold"
+                            placeholder="100">
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                            <span class="text-slate-400 font-bold text-xs">%</span>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label for="create_deadline" class="block text-xs font-semibold text-slate-600 mb-1">Batas Waktu (Deadline)</label>
@@ -268,22 +463,27 @@
                         class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
                         <option value="" disabled selected>Pilih Karyawan...</option>
                         @foreach($employees as $emp)
-                            <option value="{{ $emp->id }}" data-divisi="{{ $emp->divisi }}">{{ $emp->name }} ({{ $emp->email }})</option>
+                            <option value="{{ $emp->id }}" data-divisi="{{ $emp->divisi }}">{{ $emp->name }} ({{ $emp->divisi ?: 'Tanpa Divisi' }})</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
                     <label for="create_divisi" class="block text-xs font-semibold text-slate-600 mb-1">Divisi / Departemen</label>
-                    <select id="create_divisi" name="divisi" required
-                        class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
-                        <option value="" disabled selected>Pilih Divisi...</option>
-                        <option value="IT & Software">IT & Software</option>
-                        <option value="Marketing & Sales">Marketing & Sales</option>
-                        <option value="Human Resources">Human Resources</option>
-                        <option value="Finance & Accounting">Finance & Accounting</option>
-                        <option value="Operations">Operations</option>
-                        <option value="Design & Creative">Design & Creative</option>
-                    </select>
+                    @if($managerDivisi)
+                        <input type="text" id="create_divisi" name="divisi" value="{{ $managerDivisi }}" readonly
+                            class="block w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-slate-800 font-bold text-sm">
+                    @else
+                        <select id="create_divisi" name="divisi" required
+                            class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
+                            <option value="" disabled selected>Pilih Divisi...</option>
+                            <option value="IT & Software">IT & Software</option>
+                            <option value="Marketing & Sales">Marketing & Sales</option>
+                            <option value="Human Resources">Human Resources</option>
+                            <option value="Finance & Accounting">Finance & Accounting</option>
+                            <option value="Operations">Operations</option>
+                            <option value="Design & Creative">Design & Creative</option>
+                        </select>
+                    @endif
                 </div>
             </div>
 
@@ -339,9 +539,19 @@
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="edit_target" class="block text-xs font-semibold text-slate-600 mb-1">Target Pekerjaan</label>
-                    <input type="text" id="edit_target" name="target" required
-                        class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
+                    <div class="flex items-center justify-between mb-1">
+                        <label for="edit_target" class="block text-xs font-semibold text-slate-600">Target Pekerjaan (%)</label>
+                        <span class="text-[10px] text-emerald-600 font-bold">Maks. 100%</span>
+                    </div>
+                    <div class="relative">
+                        <input type="number" id="edit_target" name="target" min="1" max="100" required
+                            oninput="if(this.value > 100) this.value = 100; if(this.value < 1 && this.value !== '') this.value = 1;"
+                            class="block w-full rounded-lg border border-slate-300 pl-3 pr-8 py-2 text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm font-semibold"
+                            placeholder="100">
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                            <span class="text-slate-400 font-bold text-xs">%</span>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label for="edit_deadline" class="block text-xs font-semibold text-slate-600 mb-1">Batas Waktu (Deadline)</label>
@@ -378,7 +588,8 @@
                     class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
                     <option value="Pending">Pending</option>
                     <option value="In Progress">Dalam Proses</option>
-                    <option value="Completed">Completed (Selesai)</option>
+                    <option value="Revisi">Perlu Revisi (Dikembalikan ke Karyawan)</option>
+                    <option value="Completed">Completed (Menunggu Evaluasi)</option>
                     <option value="Reviewed">Reviewed (Sudah Dievaluasi)</option>
                 </select>
             </div>
@@ -431,7 +642,14 @@
     function openEditModal(task) {
         document.getElementById('edit_judul_tugas').value = task.judul_tugas;
         document.getElementById('edit_deskripsi').value = task.deskripsi;
-        document.getElementById('edit_target').value = task.target;
+        let targetNum = 100;
+        if (task.target) {
+            const matches = task.target.toString().match(/\d+/);
+            if (matches) {
+                targetNum = Math.min(100, Math.max(1, parseInt(matches[0], 10)));
+            }
+        }
+        document.getElementById('edit_target').value = targetNum;
         document.getElementById('edit_id_karyawan').value = task.id_karyawan;
         document.getElementById('edit_status').value = task.status;
         if(task.divisi) {

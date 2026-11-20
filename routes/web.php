@@ -20,7 +20,7 @@ Route::get('/', function () {
 // Authentication Routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login.post');
     Route::get('/register', function () {
         return redirect()->route('login')->with('info', 'Registrasi mandiri tidak tersedia. Akun karyawan didaftarkan oleh HR.');
     })->name('register');
@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'showProfile'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+    Route::get('/dokumen-izin/{id}', [KaryawanController::class, 'downloadDokumenIzin'])->name('dokumen-izin.download');
 });
 
 // Karyawan (Employee) Routes
@@ -49,6 +50,7 @@ Route::middleware(['auth', 'role:karyawan'])->prefix('karyawan')->name('karyawan
     Route::get('/tasks/{id}', [KaryawanController::class, 'taskDetail'])->name('task.detail');
     Route::post('/tasks/{taskId}/checklist/{checklistId}/toggle', [KaryawanController::class, 'toggleChecklist'])->name('task.checklist.toggle');
     Route::post('/tasks/{id}/submit', [KaryawanController::class, 'submitWork'])->name('task.submit');
+    Route::get('/laporan', [KaryawanController::class, 'laporan'])->name('laporan');
 });
 
 // Admin / HR Routes - READ ONLY monitoring + user management

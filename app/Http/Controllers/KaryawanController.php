@@ -11,9 +11,11 @@ use App\Models\Progress;
 use App\Models\Komentar;
 use App\Models\User;
 use App\Models\PengajuanIzin;
+use App\Services\AttendanceService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Session;
 
 class KaryawanController extends Controller
 {
@@ -67,20 +69,23 @@ class KaryawanController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        $tasks = $user->assignedTasks()->with(['progress', 'evaluasi'])->get();
+        $tasks = $user->assignedTasks()->with(['progress', 'evaluasi', 'checklists'])->get();
 
         // Calculate statistics
         $totalTasks = $tasks->count();
         $pendingTasks = $tasks->where('status', 'Pending')->count();
         $inProgressTasks = $tasks->where('status', 'In Progress')->count();
+        $revisiTasks = $tasks->where('status', 'Revisi')->count();
         $completedTasks = $tasks->whereIn('status', ['Completed', 'Reviewed'])->count();
 
-        $kpiDetail = $user->calculatePerformanceKpi($tasks);
+        $kpiDetail = $user->calculatePerformanceKpi(
+            $tasks->filter(fn ($task) => \Carbon\Carbon::parse($task->deadline)->isCurrentMonth())
+        );
         $averageScore = $kpiDetail['final_score'];
 
         // Get 5 recent tasks
         $recentTasks = $user->assignedTasks()
-            ->with(['progress'])
+            ->with(['progress', 'evaluasi', 'checklists'])
             ->orderBy('deadline', 'asc')
             ->limit(5)
             ->get();
@@ -98,6 +103,7 @@ class KaryawanController extends Controller
             'totalTasks',
             'pendingTasks',
             'inProgressTasks',
+            'revisiTasks',
             'completedTasks',
             'averageScore',
             'kpiDetail',
@@ -203,7 +209,7 @@ class KaryawanController extends Controller
         $dokumenPath = null;
 
         if ($request->hasFile('dokumen')) {
-            $dokumenPath = $request->file('dokumen')->store('dokumen_izin', 'public');
+            $dokumenPath = $request->file('dokumen')->store('dokumen_izin', 'local');
         }
 
         PengajuanIzin::create([
@@ -230,10 +236,7 @@ class KaryawanController extends Controller
 
         $user = Auth::user();
         $today = now()->toDateString();
-        
-        // Gunakan jam dari perangkat (laptop/HP) jika ada, jika tidak gunakan waktu server
-        $jam = $request->filled('client_time') ? $request->client_time : now()->format('H:i:s');
-        
+        $jam = now()->format('H:i:s');
         $info = $this->getAbsensiInfo($request->jenis, $jam);
 
         $todayLogs = Absensi::where('user_id', $user->id)
@@ -256,14 +259,19 @@ class KaryawanController extends Controller
             }
         }
 
-        Absensi::create([
-            'user_id' => $user->id,
-            'tanggal' => $today,
-            'jenis' => $request->jenis,
-            'jam' => $jam,
-            'status' => $info['label'],
-            'detail' => $info['detail'],
-        ]);
+        try {
+            Absensi::create([
+                'user_id' => $user->id,
+                'tanggal' => $today,
+                'jenis' => $request->jenis,
+                'jam' => $jam,
+                'status' => $info['label'],
+                'detail' => $info['detail'],
+            ]);
+        } catch (UniqueConstraintViolationException $exception) {
+            return redirect()->route('karyawan.absensi')
+                ->with('error', 'Absensi hari ini sudah tercatat. Silakan muat ulang halaman.');
+        }
 
         $label = $request->jenis === 'masuk' ? 'Masuk' : 'Pulang';
 
@@ -271,20 +279,48 @@ class KaryawanController extends Controller
     }
 
     /**
-     * List all tasks assigned to the employee.
+     * List all tasks assigned to the employee with monthly filtering & summary.
      */
     public function tasks(Request $request)
     {
         $user = Auth::user();
-        $query = $user->assignedTasks()->with(['progress', 'evaluasi']);
+        $bulan = $request->input('bulan', now()->format('m'));
+        $tahun = $request->input('tahun', now()->format('Y'));
+        $status = $request->input('status');
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        $query = $user->assignedTasks()->with(['progress', 'evaluasi', 'checklists']);
+
+        if ($bulan && $bulan !== 'all') {
+            $query->whereMonth('deadline', $bulan)->whereYear('deadline', $tahun);
+        } elseif ($tahun && $tahun !== 'all') {
+            $query->whereYear('deadline', $tahun);
+        }
+
+        if ($status) {
+            $query->where('status', $status);
         }
 
         $tasks = $query->orderBy('deadline', 'asc')->get();
 
-        return view('karyawan.tasks', compact('tasks'));
+        // Calculate monthly summary for this month/year
+        $monthQuery = $user->assignedTasks()->with(['progress', 'checklists']);
+        if ($bulan && $bulan !== 'all') {
+            $monthQuery->whereMonth('deadline', $bulan)->whereYear('deadline', $tahun);
+        } elseif ($tahun && $tahun !== 'all') {
+            $monthQuery->whereYear('deadline', $tahun);
+        }
+        $allMonthTasks = $monthQuery->get();
+
+        $monthlySummary = [
+            'total' => $allMonthTasks->count(),
+            'completed' => $allMonthTasks->whereIn('status', ['Completed', 'Reviewed'])->count(),
+            'revisi' => $allMonthTasks->where('status', 'Revisi')->count(),
+            'in_progress' => $allMonthTasks->whereIn('status', ['Pending', 'In Progress'])->count(),
+            'avg_score' => $allMonthTasks->count() > 0 ? round($allMonthTasks->avg(fn($t) => $t->persentase)) : 0,
+            'on_time' => $allMonthTasks->filter(fn($t) => $t->kecepatan_info['is_on_time'])->count(),
+        ];
+
+        return view('karyawan.tasks', compact('tasks', 'monthlySummary', 'bulan', 'tahun'));
     }
 
     /**
@@ -317,12 +353,22 @@ class KaryawanController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
+        if (!in_array($task->status, ['Pending', 'In Progress', 'Revisi'])) {
+            return redirect()->route('karyawan.task.detail', $task->id)
+                ->with('error', 'Checklist tidak dapat diubah karena tugas sudah dikirim atau dievaluasi.');
+        }
+
         $checklist = TaskChecklist::where('task_id', $task->id)->findOrFail($checklistId);
         $checklist->is_completed = !$checklist->is_completed;
         $checklist->save();
 
-        if ($task->status === 'Pending' && $checklist->is_completed) {
-            $task->status = 'In Progress';
+        $task->forgetComputedAttributes();
+        $task->load('checklists');
+
+        if (in_array($task->status, ['Pending', 'In Progress'])) {
+            $task->status = $task->checklists->contains(fn ($item) => $item->is_completed)
+                ? 'In Progress'
+                : 'Pending';
             $task->save();
         }
 
@@ -331,41 +377,130 @@ class KaryawanController extends Controller
     }
 
     /**
-     * Submit final work and complete task.
+     * Submit final work or revision and complete task.
      */
     public function submitWork(Request $request, $id)
     {
         $user = Auth::user();
-        $task = Task::findOrFail($id);
+        $task = Task::with('checklists')->findOrFail($id);
 
         if ($task->id_karyawan !== $user->id) {
             abort(403, 'Akses ditolak.');
+        }
+
+        if (!in_array($task->status, ['Pending', 'In Progress', 'Revisi'])) {
+            return redirect()->route('karyawan.task.detail', $task->id)
+                ->with('error', 'Tugas ini sudah dikirim dan tidak dapat dikirim ulang.');
         }
 
         $request->validate([
             'dokumen' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
-        $documentPath = $request->file('dokumen')->store('hasil-tugas', 'public');
-
-        // Create 100% progress log
-        Progress::create([
-            'task_id' => $task->id,
-            'persentase' => 100,
-            'keterangan' => 'Tugas selesai dan file hasil kerja telah dikirim.',
-            'tanggal_update' => now(),
-        ]);
-
-        // Update task status and final work text
-        $task->status = 'Completed';
-        if ($task->dokumen_path) {
-            Storage::disk('public')->delete($task->dokumen_path);
+        if ($task->checklists->isNotEmpty() && $task->checklists->contains(fn ($item) => ! $item->is_completed)) {
+            return redirect()->route('karyawan.task.detail', $task->id)
+                ->with('error', 'Selesaikan seluruh poin checklist sebelum mengirim hasil kerja.');
         }
-        $task->hasil_kerja = $request->file('dokumen')->getClientOriginalName();
-        $task->dokumen_path = $documentPath;
-        $task->save();
+
+        $documentPath = $request->file('dokumen')->store('hasil-tugas', 'public');
+        $isRevision = $task->status === 'Revisi';
+
+        DB::transaction(function () use ($task, $request, $documentPath, $isRevision) {
+            Progress::create([
+                'task_id' => $task->id,
+                'persentase' => 100,
+                'keterangan' => $isRevision
+                    ? 'Hasil revisi tugas telah diunggah dan dikirimkan kembali ke manajer untuk dievaluasi.'
+                    : 'Tugas selesai dan file hasil kerja telah dikirim.',
+                'tanggal_update' => now(),
+            ]);
+
+            if ($task->dokumen_path) {
+                Storage::disk('public')->delete($task->dokumen_path);
+            }
+
+            $task->status = 'Completed';
+            $task->hasil_kerja = $request->file('dokumen')->getClientOriginalName();
+            $task->dokumen_path = $documentPath;
+            $task->save();
+        });
+
+        $task->forgetComputedAttributes();
+
+        $msg = $isRevision
+            ? 'Hasil revisi tugas berhasil dikirim kembali ke manajer untuk ditinjau dan dievaluasi.'
+            : 'Tugas berhasil diselesaikan dan dikirim ke sistem untuk dievaluasi.';
 
         return redirect()->route('karyawan.task.detail', $task->id)
-            ->with('success', 'Tugas berhasil diselesaikan dan dikirim ke sistem untuk dievaluasi.');
+            ->with('success', $msg);
+    }
+
+    /**
+     * Download a leave/permission supporting document.
+     * Documents live on the private disk and are only served to the owner or HR.
+     */
+    public function downloadDokumenIzin($id)
+    {
+        $izin = PengajuanIzin::findOrFail($id);
+        $user = Auth::user();
+
+        if ($izin->user_id !== $user->id && !in_array($user->role, ['admin', 'hr'], true)) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        if (!$izin->dokumen) {
+            abort(404);
+        }
+
+        if (Storage::disk('local')->exists($izin->dokumen)) {
+            return Storage::disk('local')->download($izin->dokumen);
+        }
+
+        // Backward compatibility for files uploaded before the private-disk change.
+        if (Storage::disk('public')->exists($izin->dokumen)) {
+            return Storage::disk('public')->download($izin->dokumen);
+        }
+
+        abort(404);
+    }
+
+    /**
+     * Display personal performance and task report for employee.
+     */
+    public function laporan(Request $request, AttendanceService $attendance)
+    {
+        $user = Auth::user();
+        $bulan = $request->input('bulan', now()->format('m'));
+        $tahun = $request->input('tahun', now()->format('Y'));
+
+        $taskQuery = $user->assignedTasks()->with(['checklists', 'evaluasi', 'progress']);
+        if ($bulan && $bulan !== 'all') {
+            $taskQuery->whereMonth('deadline', $bulan)->whereYear('deadline', $tahun);
+        } elseif ($tahun && $tahun !== 'all') {
+            $taskQuery->whereYear('deadline', $tahun);
+        }
+        $tasks = $taskQuery->orderBy('deadline', 'asc')->get();
+
+        $kpi = $user->calculatePerformanceKpi($tasks, $bulan === 'all' ? now()->month : (int)$bulan, (int)$tahun);
+
+        $absensiList = $attendance->recordsFor($user->id, $bulan, $tahun);
+        $attendanceSummary = $attendance->summarize($absensiList, $user->id, $bulan, $tahun);
+
+        $totalHadir = $attendanceSummary['total_hadir'];
+        $tepatWaktu = $attendanceSummary['tepat_waktu'];
+        $terlambat = $attendanceSummary['terlambat'];
+        $izinCount = $attendanceSummary['izin_hari'];
+
+        return view('karyawan.laporan', compact(
+            'user',
+            'tasks',
+            'kpi',
+            'bulan',
+            'tahun',
+            'totalHadir',
+            'tepatWaktu',
+            'terlambat',
+            'izinCount'
+        ));
     }
 }

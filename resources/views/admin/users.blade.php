@@ -118,14 +118,14 @@
                     <select id="create_role" name="role" required
                         class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
                         <option value="karyawan">Karyawan</option>
-                        <option value="manajer">Manajer</option>
+                        <option value="manajer">Manajer Divisi</option>
                     </select>
                 </div>
                 <div>
-                    <label for="create_divisi" class="block text-xs font-semibold text-slate-600 mb-1">Divisi / Departemen</label>
-                    <select id="create_divisi" name="divisi"
+                    <label for="create_divisi" class="block text-xs font-semibold text-slate-600 mb-1">Divisi / Departemen <span class="text-red-500">*</span></label>
+                    <select id="create_divisi" name="divisi" required
                         class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
-                        <option value="" selected>Pilih Divisi (Opsional)...</option>
+                        <option value="" disabled selected>Pilih Divisi...</option>
                         <option value="IT & Software">IT & Software</option>
                         <option value="Marketing & Sales">Marketing & Sales</option>
                         <option value="Human Resources">Human Resources</option>
@@ -181,14 +181,14 @@
                     <select id="edit_role" name="role" required
                         class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
                         <option value="karyawan">Karyawan</option>
-                        <option value="manajer">Manajer</option>
+                        <option value="manajer">Manajer Divisi</option>
                     </select>
                 </div>
                 <div>
-                    <label for="edit_divisi" class="block text-xs font-semibold text-slate-600 mb-1">Divisi / Departemen</label>
-                    <select id="edit_divisi" name="divisi"
+                    <label for="edit_divisi" class="block text-xs font-semibold text-slate-600 mb-1">Divisi / Departemen <span class="text-red-500">*</span></label>
+                    <select id="edit_divisi" name="divisi" required
                         class="block w-full rounded-lg border border-slate-300 px-3 py-2 bg-white text-slate-700 shadow-sm focus:border-navy-600 focus:outline-none focus:ring-1 focus:ring-navy-600 text-sm">
-                        <option value="">Pilih Divisi (Opsional)...</option>
+                        <option value="" disabled>Pilih Divisi...</option>
                         <option value="IT & Software">IT & Software</option>
                         <option value="Marketing & Sales">Marketing & Sales</option>
                         <option value="Human Resources">Human Resources</option>

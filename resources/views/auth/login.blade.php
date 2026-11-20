@@ -108,9 +108,32 @@
             </button>
         </form>
 
-        <div class="mt-5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-600">
-            <span class="font-semibold text-slate-700">Catatan:</span> Pendaftaran akun karyawan sepenuhnya dilakukan oleh <strong>HR</strong>. Silakan minta alamat email & password ke HR untuk dapat masuk.
+        <!-- Akun Demo Bawaan Sistem -->
+        <div class="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2.5">
+            <div class="font-bold text-slate-800 flex items-center justify-between">
+                <span><i class="fa-solid fa-key mr-1.5 text-navy-800"></i> Akun Login Bawaan:</span>
+                <span class="text-[11px] bg-slate-200 text-slate-800 px-2.5 py-0.5 rounded font-mono font-semibold">password123</span>
+            </div>
+            <p class="text-[11px] text-slate-500">Klik salah satu tombol di bawah untuk mengisi form login secara otomatis:</p>
+            <div class="grid grid-cols-3 gap-2 pt-0.5 text-center font-bold">
+                <button type="button" onclick="fillLogin('admin@gmail.com', 'password123')" class="px-2 py-2 bg-white border border-slate-300 hover:border-navy-800 hover:bg-slate-100 rounded-lg text-slate-800 text-[11px] transition shadow-xs">
+                    Admin / HR
+                </button>
+                <button type="button" onclick="fillLogin('manajer@gmail.com', 'password123')" class="px-2 py-2 bg-white border border-slate-300 hover:border-navy-800 hover:bg-slate-100 rounded-lg text-slate-800 text-[11px] transition shadow-xs">
+                    Manajer
+                </button>
+                <button type="button" onclick="fillLogin('karyawan@gmail.com', 'password123')" class="px-2 py-2 bg-white border border-slate-300 hover:border-navy-800 hover:bg-slate-100 rounded-lg text-slate-800 text-[11px] transition shadow-xs">
+                    Karyawan
+                </button>
+            </div>
         </div>
+
+        <script>
+            function fillLogin(email, pass) {
+                document.getElementById('email').value = email;
+                document.getElementById('password').value = pass;
+            }
+        </script>
 
         <div class="mt-6 text-center">
             <a href="{{ url('/') }}" class="inline-flex items-center text-sm text-slate-500 hover:text-slate-700 transition">

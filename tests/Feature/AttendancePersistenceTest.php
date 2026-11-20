@@ -44,4 +44,37 @@ class AttendancePersistenceTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_client_supplied_time_is_ignored_when_recording_attendance()
+    {
+        $user = User::factory()->create([
+            'role' => 'karyawan',
+        ]);
+
+        $this->actingAs($user);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-01 09:45:00'));
+
+        $this->post('/karyawan/absensi', [
+            'jenis' => 'masuk',
+            'client_time' => '08:00:00',
+        ])->assertRedirect('/karyawan/absensi');
+
+        $this->assertDatabaseHas('absensis', [
+            'user_id' => $user->id,
+            'tanggal' => '2026-09-01',
+            'jenis' => 'masuk',
+            'jam' => '09:45:00',
+            'status' => 'Terlambat',
+        ]);
+
+        // A second check-in must not create another row.
+        $this->post('/karyawan/absensi', ['jenis' => 'masuk'])
+            ->assertRedirect('/karyawan/absensi')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseCount('absensis', 1);
+
+        Carbon::setTestNow();
+    }
 }
